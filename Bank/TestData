@@ -1,0 +1,75 @@
+package bank;
+
+import java.sql.*;
+public class TestData {
+    public static void main(String args[]) {
+        try (Connection con = DBUtils.getConnection()) {
+
+            insertUserIfNotExists(con, "Aishu", "123 Main St", "9999999999", "aishu@gmail.com", 123456792L, "141724", 1000.0);
+            insertUserIfNotExists(con, "Nagu", "124 Main St", "9999999998", "nagu@gmail.com", 123456790L, "141722", 2000.0);
+            insertUserIfNotExists(con, "Mahii", "127 Main St", "9999999997", "mahii@gmail.com", 123456791L, "141723", 2000.0);
+
+            System.out.println("Data insertion completed!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void insertUserIfNotExists(Connection con, String name, String address, String phone, String email,
+                                             long cardNo, String pin, double balance) throws SQLException {
+
+        // Check if user already exists
+        String checkSql = "SELECT userId FROM users WHERE email = ?";
+        PreparedStatement psCheck = con.prepareStatement(checkSql);
+        psCheck.setString(1, email);
+        ResultSet rsCheck = psCheck.executeQuery();
+
+        if (rsCheck.next()) {
+            System.out.println("User with email " + email + " already exists. Skipping insertion.");
+            return;
+        }
+
+        // Insert User
+        String userSql = "INSERT INTO users (userName, Address, phoneNumber, email) VALUES (?, ?, ?, ?)";
+        PreparedStatement psUser = con.prepareStatement(userSql, Statement.RETURN_GENERATED_KEYS);
+        psUser.setString(1, name);
+        psUser.setString(2, address);
+        psUser.setString(3, phone);
+        psUser.setString(4, email);
+        psUser.executeUpdate();
+
+        ResultSet rsUser = psUser.getGeneratedKeys();
+        long userId = 0;
+        if (rsUser.next()) {
+            userId = rsUser.getLong(1);
+        }
+
+        // Insert Account
+        String accountSql = "INSERT INTO accounts (userId, accountType, balance) VALUES (?, ?, ?)";
+        PreparedStatement psAcc = con.prepareStatement(accountSql, Statement.RETURN_GENERATED_KEYS);
+        psAcc.setLong(1, userId);
+        psAcc.setString(2, "SAVINGS");
+        psAcc.setDouble(3, balance);
+        psAcc.executeUpdate();
+
+        ResultSet rsAcc = psAcc.getGeneratedKeys();
+        long accountId = 0;
+        if (rsAcc.next()) {
+            accountId = rsAcc.getLong(1);
+        }
+
+        // Insert Card
+        String hashedPin = Password.hashPassword(pin);
+        String cardSql = "INSERT INTO cards (cardNo, accountId, pin, expiryDate, status) VALUES (?, ?, ?, ?, ?)";
+        PreparedStatement psCard = con.prepareStatement(cardSql);
+        psCard.setLong(1, cardNo);
+        psCard.setLong(2, accountId);
+        psCard.setString(3, hashedPin);
+        psCard.setDate(4, Date.valueOf("2030-12-31"));
+        psCard.setString(5, "ACTIVE");
+        psCard.executeUpdate();
+
+        System.out.println("Inserted User: " + name + ", Account ID: " + accountId + ", Card No: " + cardNo);
+    }
+}
