@@ -1,0 +1,96 @@
+package bank;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+
+public class BankImplementation implements BankInterface {
+
+	@Override
+    public void Balance(long accountId) {
+        try (Connection con = DBUtils.getConnection()) {
+            String sql = "SELECT balance FROM accounts WHERE accountId = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setLong(1, accountId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                System.out.println("Available Balance: " + rs.getDouble("balance"));
+            } else {
+                System.out.println("Account not found!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+	 @Override
+	    public void Withdraw(long accountId, double withdrawAmount) {
+	        try (Connection con = DBUtils.getConnection()) {
+	            String check = "SELECT balance FROM accounts WHERE accountId = ?";
+	            PreparedStatement ps = con.prepareStatement(check);
+	            ps.setLong(1, accountId);
+	            ResultSet rs = ps.executeQuery();
+	            if (rs.next()) {
+	                double balance = rs.getDouble("balance");
+	                if (balance >= withdrawAmount) {
+	                    String update = "UPDATE accounts SET balance = balance - ? WHERE accountId = ?";
+	                    ps = con.prepareStatement(update);
+	                    ps.setDouble(1, withdrawAmount);
+	                    ps.setLong(2, accountId);
+	                    ps.executeUpdate();
+
+	                    String txnSql = "INSERT INTO transactions(accountId, tnxType, amount) VALUES (?, 'WITHDRAW', ?)";
+	                    ps = con.prepareStatement(txnSql);
+	                    ps.setLong(1, accountId);
+	                    ps.setDouble(2, withdrawAmount);
+	                    ps.executeUpdate();
+
+	                    System.out.println("Withdrawn Amount: " + withdrawAmount);
+	                } else {
+	                    System.out.println("Insufficient funds!");
+	                }
+	            } else {
+	                System.out.println("Account not found!");
+	            }
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	        }
+	    }
+	 @Override
+	    public void Deposit(long accountId, double depositAmount) {
+	        try (Connection con = DBUtils.getConnection()) {
+	            String sql = "UPDATE accounts SET balance = balance + ? WHERE accountId = ?";
+	            PreparedStatement ps = con.prepareStatement(sql);
+	            ps.setDouble(1, depositAmount);
+	            ps.setLong(2, accountId);
+	            ps.executeUpdate();
+
+	            String txnSql = "INSERT INTO transactions(accountId, tnxType, amount) VALUES (?, 'DEPOSIT', ?)";
+	            ps = con.prepareStatement(txnSql);
+	            ps.setLong(1, accountId);
+	            ps.setDouble(2, depositAmount);
+	            ps.executeUpdate();
+
+	            System.out.println("Deposited Amount: " + depositAmount);
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	        }
+	    }
+
+	    @Override
+	    public void ViewMiniStmnt(long accountId) {
+	        try (Connection con = DBUtils.getConnection()) {
+	            String sql = "SELECT tnxType, amount, tnxDate FROM transactions WHERE accountId = ? ORDER BY tnxDate DESC";
+	            PreparedStatement ps = con.prepareStatement(sql);
+	            ps.setLong(1, accountId);
+	            ResultSet rs = ps.executeQuery();
+	            System.out.println("----- Mini Statement -----");
+	            while (rs.next()) {
+	                System.out.println(rs.getString("tnxType") + " : " + rs.getDouble("amount") + " on " + rs.getTimestamp("tnxDate"));
+	            }
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	        }
+	    }
+}
