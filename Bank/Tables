@@ -1,0 +1,57 @@
+package bank;
+
+import java.sql.*;
+
+public class Tables {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		try(Connection con=DBUtils.getConnection())
+		{
+		
+		Statement stmt=con.createStatement();
+		String users="CREATE TABLE IF NOT EXISTS users("
+				+"userId INT AUTO_INCREMENT PRIMARY KEY,"
+				+"userName varchar(100),"
+				+"Address varchar(100),"
+				+"phoneNumber BIGINT,"
+				+"email varchar(100) unique"
+				+ ")";
+		stmt.executeUpdate(users);
+		String accounts="CREATE TABLE IF NOT EXISTS accounts("
+				+"accountId INT AUTO_INCREMENT PRIMARY KEY,"
+				+"userId INT,"
+				+"accountType ENUM('Current','savings')NOT NULL,"
+				+"balance DECIMAL(15,2) default 0,"
+				+"FOREIGN KEY(userId) REFERENCES users(userId)"	
+				+")";
+		stmt.executeUpdate(accounts);
+		String transactions="CREATE TABLE IF NOT EXISTS transactions("
+				+"tnxId INT AUTO_INCREMENT PRIMARY KEY,"
+				+"accountId INT,"
+				+"tnxType ENUM('Deposit','Withdraw','Transfer')NOT NULL,"
+				+"amount decimal(15,2) NOT NULL,"
+				+"tnxDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+				+"status ENUM('SUCCESS','FAILED')DEFAULT 'SUCCESS',"
+				+"FOREIGN KEY(accountId) REFERENCES accounts(accountId)"
+				+")";
+		stmt.executeUpdate(transactions);
+		String cards="CREATE TABLE IF NOT EXISTS cards("
+				+"cardNo BIGINT PRIMARY KEY,"
+				+"accountId INT,"
+				+"pin char(60),"
+				+"expiryDate DATE,"
+				+"status ENUM('ACTIVE','BLOCKED')DEFAULT 'ACTIVE',"
+				+"FOREIGN KEY(accountId) REFERENCES accounts(accountId)"
+				+")";
+		stmt.executeUpdate(cards);
+		System.out.println("Tables 'users' 'accounts' 'transactions' 'cards' created successfully!");
+		con.close();
+	}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+
+}
+}
