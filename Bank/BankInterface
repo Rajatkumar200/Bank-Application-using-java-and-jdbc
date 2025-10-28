@@ -1,0 +1,8 @@
+package bank;
+
+public interface BankInterface {
+ void Balance(long accountNum);
+ void Withdraw(long accountNum,double withdraw);
+ void Deposit(long accountNum,double deposit);
+ void ViewMiniStmnt(long accountNum);
+}
